@@ -207,57 +207,20 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ═══ OVERVIEW PANEL ═══ */
-    .overview-status {
-      border-radius: var(--r-lg);
-      padding: 1.75rem 2rem;
+    .ov-header {
       display: flex;
       align-items: center;
-      gap: 1.75rem;
-      border: 1px solid;
-      position: relative;
-      overflow: hidden;
+      justify-content: space-between;
       margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
 
-    .overview-status::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: .03;
-      background: radial-gradient(ellipse at 30% 50%, currentColor, transparent 70%);
-      pointer-events: none;
-    }
+    .ov-header-left { display: flex; align-items: center; gap: 10px; }
 
-    .overview-status.safe { background: var(--safe-bg); border-color: var(--safe-border); color: var(--safe); }
-    .overview-status.caution { background: var(--caution-bg); border-color: var(--caution-border); color: var(--caution); }
-    .overview-status.unsafe { background: var(--unsafe-bg); border-color: var(--unsafe-border); color: var(--unsafe); }
+    .ov-header-left h2 { font-size: 1.1rem; font-weight: 700; }
 
-    .os-icon { font-size: 2.75rem; line-height: 1; flex-shrink: 0; }
-
-    .os-body { flex: 1; min-width: 0; }
-
-    .os-label {
-      font-size: 0.62rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-    }
-
-    .os-title {
-      font-size: 1.65rem;
-      font-weight: 800;
-      line-height: 1.1;
-      margin: 2px 0;
-    }
-
-    .os-desc { font-size: 0.82rem; color: var(--text-secondary); }
-
-    .os-meta { text-align: right; flex-shrink: 0; }
-
-    .os-loc { font-size: 0.82rem; font-weight: 600; color: var(--text); }
-
-    .os-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+    .ov-header-time { font-size: 0.72rem; color: var(--text-muted); }
 
     /* Safety banners */
     .safety-row {
@@ -306,44 +269,32 @@
 
     .sb-detail { font-size: 0.68rem; margin-top: 4px; color: var(--text-secondary); }
 
-    /* Stats row */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.75rem;
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 0.5rem;
       margin-bottom: 1rem;
+      flex-wrap: wrap;
     }
 
-    .stat {
+    .stat-pill {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 1rem;
-      text-align: center;
-      transition: border-color .15s;
-    }
-
-    .stat:hover { border-color: var(--border-active); }
-
-    .stat-num {
-      font-size: 1.75rem;
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 2px;
-    }
-
-    .stat:nth-child(1) .stat-num { color: var(--accent); }
-    .stat:nth-child(2) .stat-num { color: var(--safe); }
-    .stat:nth-child(3) .stat-num { color: var(--caution); }
-    .stat:nth-child(4) .stat-num { color: var(--unsafe); }
-
-    .stat-lbl {
-      font-size: 0.65rem;
+      border-radius: 20px;
+      padding: 0.4rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
+      color: var(--text-secondary);
     }
+
+    .stat-pill-num { font-weight: 800; }
+    .stat-pill:nth-child(1) .stat-pill-num { color: var(--accent); }
+    .stat-pill:nth-child(2) .stat-pill-num { color: var(--safe); }
+    .stat-pill:nth-child(3) .stat-pill-num { color: var(--caution); }
+    .stat-pill:nth-child(4) .stat-pill-num { color: var(--unsafe); }
 
     /* Sensor picker */
     .sensor-pick {
@@ -704,10 +655,6 @@
 
     /* ═══ RESPONSIVE ═══ */
     @media (max-width: 900px) {
-      .overview-status { flex-direction: column; text-align: center; gap: 1rem; padding: 1.25rem; }
-      .os-meta { text-align: center; }
-      .os-title { font-size: 1.35rem; }
-      .stats-row { grid-template-columns: repeat(2, 1fr); }
       .readings { grid-template-columns: repeat(2, 1fr); }
       .dash-grid { grid-template-columns: 1fr; }
       .alerts-card { flex-direction: column; text-align: center; padding: 2rem; }
@@ -721,8 +668,7 @@
       .panel { padding: 1rem; }
       .readings { grid-template-columns: 1fr 1fr; }
       .rd-val { font-size: 1.4rem; }
-      .stats-row { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-      .stat-num { font-size: 1.3rem; }
+      .stats-bar { gap: 0.35rem; }
       .safety-row { grid-template-columns: 1fr; }
       .sb-status { font-size: 1.1rem; }
       .map-wrap { height: calc(100vh - 56px - 2rem); min-height: 300px; }
@@ -766,17 +712,11 @@
 
   <!-- ── OVERVIEW ── -->
   <div class="panel active" id="panel-overview">
-    <div class="overview-status safe" id="ov-banner">
-      <div class="os-icon" id="ov-icon">✅</div>
-      <div class="os-body">
-        <div class="os-label">Current Water Quality</div>
-        <div class="os-title" id="ov-title">SAFE</div>
-        <div class="os-desc" id="ov-desc">All parameters within safe limits — water is suitable for recreational use.</div>
+    <div class="ov-header">
+      <div class="ov-header-left">
+        <div class="sensor-pick" id="ov-sensors"></div>
       </div>
-      <div class="os-meta">
-        <div class="os-loc" id="ov-loc">Lucky's Dock</div>
-        <div class="os-time" id="ov-time">Updated just now</div>
-      </div>
+      <div class="ov-header-time" id="ov-time">Updated just now</div>
     </div>
 
     <div class="safety-row">
@@ -794,14 +734,12 @@
       </div>
     </div>
 
-    <div class="stats-row">
-      <div class="stat"><div class="stat-num" id="st-total">3</div><div class="stat-lbl">Active Sensors</div></div>
-      <div class="stat"><div class="stat-num" id="st-safe">1</div><div class="stat-lbl">Safe</div></div>
-      <div class="stat"><div class="stat-num" id="st-caution">1</div><div class="stat-lbl">Caution</div></div>
-      <div class="stat"><div class="stat-num" id="st-unsafe">1</div><div class="stat-lbl">Unsafe</div></div>
+    <div class="stats-bar">
+      <div class="stat-pill"><span class="stat-pill-num" id="st-total">3</span> Sensors</div>
+      <div class="stat-pill"><span class="stat-pill-num" id="st-safe">1</span> Safe</div>
+      <div class="stat-pill"><span class="stat-pill-num" id="st-caution">1</span> Caution</div>
+      <div class="stat-pill"><span class="stat-pill-num" id="st-unsafe">1</span> Unsafe</div>
     </div>
-
-    <div class="sensor-pick" id="ov-sensors"></div>
 
     <div class="readings" id="ov-readings">
       <div class="rd safe" id="rd-ph"><div class="bar"></div><div class="rd-lbl">pH Level</div><div class="rd-row"><div class="rd-val">7.2</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:51%"></div></div><div class="rd-range"><span>0</span><span>14</span></div><div class="rd-tag">Normal</div></div>
@@ -899,12 +837,6 @@
     return l.indexOf("unsafe") >= 0 ? "unsafe" : l.indexOf("caution") >= 0 ? "caution" : "safe";
   }
 
-  var STA = {
-    safe:    { icon:"✅", title:"SAFE",    desc:"All parameters within safe limits — water is suitable for recreational use." },
-    caution: { icon:"⚠️", title:"CAUTION", desc:"One or more parameters approaching unsafe levels — exercise caution." },
-    unsafe:  { icon:"🚨", title:"UNSAFE",  desc:"Water quality is below safe thresholds — avoid contact until conditions improve." }
-  };
-
   var SWIM = { ph:[6.5,8.5], tds:[0,1000], turbidity:[0,100], temperature:[0,95] };
   var DRINK = { ph:[6.5,8.5], tds:[0,500], turbidity:[0,1], temperature:[0,77] };
 
@@ -934,14 +866,7 @@
     de.querySelector(".sb-detail").textContent = drinkBad.length === 0 ? "All 4 sensors within safe range" : drinkBad.join(", ") + " out of range";
   }
 
-  function updateBanner(s) {
-    var st = overall(s), c = STA[st];
-    var el = document.getElementById("ov-banner");
-    el.className = "overview-status " + st;
-    document.getElementById("ov-icon").textContent = c.icon;
-    document.getElementById("ov-title").textContent = c.title;
-    document.getElementById("ov-desc").textContent = c.desc;
-    document.getElementById("ov-loc").textContent = s.name;
+  function updateTime() {
     document.getElementById("ov-time").textContent = "Updated " + new Date().toLocaleTimeString();
   }
 
@@ -1007,7 +932,7 @@
 
   function selectSensor(s) {
     selected = s;
-    updateBanner(s);
+    updateTime();
     updateSafetyBanners(s);
     updateReadings(s);
     updateDashCards(s);
@@ -1176,7 +1101,7 @@
   });
 
   // ── Init ──
-  updateBanner(selected);
+  updateTime();
   updateSafetyBanners(selected);
   updateStats();
   updateReadings(selected);
