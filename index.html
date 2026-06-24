@@ -418,7 +418,15 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .rd-desc {
+      font-size: 0.6rem;
+      color: var(--text-muted);
       margin-bottom: 6px;
+      line-height: 1.3;
+      opacity: .7;
     }
 
     .rd-row { display: flex; align-items: baseline; gap: 4px; }
@@ -753,10 +761,10 @@
     </div>
 
     <div class="readings" id="ov-readings">
-      <div class="rd safe" id="rd-ph"><div class="bar"></div><div class="rd-lbl">pH Level</div><div class="rd-row"><div class="rd-val">7.2</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:51%"></div></div><div class="rd-range"><span>0</span><span>14</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: 6.5 – 8.5</span></div><div class="rd-tag">Pass</div></div>
-      <div class="rd safe" id="rd-tds"><div class="bar"></div><div class="rd-lbl">TDS</div><div class="rd-row"><div class="rd-val">187</div><div class="rd-unit">ppm</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:25%"></div></div><div class="rd-range"><span>0</span><span>750</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 1000 ppm</span></div><div class="rd-tag">Pass</div></div>
-      <div class="rd safe" id="rd-turb"><div class="bar"></div><div class="rd-lbl">Turbidity</div><div class="rd-row"><div class="rd-val">3.1</div><div class="rd-unit">NTU</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:2%"></div></div><div class="rd-range"><span>0</span><span>150</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 100 NTU</span></div><div class="rd-tag">Pass</div></div>
-      <div class="rd safe" id="rd-temp"><div class="bar"></div><div class="rd-lbl">Temperature</div><div class="rd-row"><div class="rd-val">74</div><div class="rd-unit">°F</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:54%"></div></div><div class="rd-range"><span>32°F</span><span>110°F</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 95°F</span></div><div class="rd-tag">Pass</div></div>
+      <div class="rd safe" id="rd-ph"><div class="bar"></div><div class="rd-lbl">pH Level</div><div class="rd-desc">Acidity of the water; 7 is neutral</div><div class="rd-row"><div class="rd-val">7.2</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:51%"></div></div><div class="rd-range"><span>0</span><span>14</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: 6.5 – 8.5</span></div><div class="rd-tag">Pass</div></div>
+      <div class="rd safe" id="rd-tds"><div class="bar"></div><div class="rd-lbl">Total Dissolved Solids</div><div class="rd-desc">Minerals &amp; salts dissolved in water</div><div class="rd-row"><div class="rd-val">187</div><div class="rd-unit">ppm</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:25%"></div></div><div class="rd-range"><span>0</span><span>750</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 1000 ppm</span></div><div class="rd-tag">Pass</div></div>
+      <div class="rd safe" id="rd-turb"><div class="bar"></div><div class="rd-lbl">Turbidity</div><div class="rd-desc">Water clarity; higher means cloudier</div><div class="rd-row"><div class="rd-val">3.1</div><div class="rd-unit">NTU</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:2%"></div></div><div class="rd-range"><span>0</span><span>150</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 100 NTU</span></div><div class="rd-tag">Pass</div></div>
+      <div class="rd safe" id="rd-temp"><div class="bar"></div><div class="rd-lbl">Temperature</div><div class="rd-desc">Surface water temperature</div><div class="rd-row"><div class="rd-val">74</div><div class="rd-unit">°F</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:54%"></div></div><div class="rd-range"><span>32°F</span><span>110°F</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 95°F</span></div><div class="rd-tag">Pass</div></div>
     </div>
   </div>
 
