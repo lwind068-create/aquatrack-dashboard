@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AquaTrack — Real-Time Water Quality Monitoring</title>
+  <meta name="description" content="Real-time water quality monitoring for everyone. Live IoT sensor data from lakes, rivers, and waterways." />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #060d1b;
+      --bg-secondary: #0b1120;
+      --bg-card: #111c2e;
+      --bg-card-alt: #162033;
+      --border: #1e3048;
+      --border-active: #2a5a8a;
+      --text: #e8edf5;
+      --text-secondary: #8899b0;
+      --text-muted: #556680;
+      --accent: #06b6d4;
+      --accent-light: #22d3ee;
+      --accent-dim: rgba(6,182,212,.12);
+      --teal: #14b8a6;
+      --safe: #10b981;
+      --safe-bg: rgba(16,185,129,.08);
+      --safe-border: rgba(16,185,129,.25);
+      --caution: #f59e0b;
+      --caution-bg: rgba(245,158,11,.08);
+      --caution-border: rgba(245,158,11,.25);
+      --unsafe: #ef4444;
+      --unsafe-bg: rgba(239,68,68,.08);
+      --unsafe-border: rgba(239,68,68,.25);
+      --r: 12px;
+      --r-lg: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ═══ TOP BAR ═══ */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      background: rgba(6,13,27,.92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+      height: 56px;
+      flex-shrink: 0;
+    }
+
+    .topbar-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(6,182,212,.25);
+    }
+
+    .logo-text {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-sub {
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: -1px;
+    }
+
+    /* ── Tab Bar ── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.5rem 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      position: relative;
+    }
+
+    .tab:hover { color: var(--text-secondary); background: rgba(255,255,255,.03); }
+
+    .tab.active {
+      color: var(--accent-light);
+      background: var(--accent-dim);
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 1px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--safe);
+      background: var(--safe-bg);
+      border: 1px solid var(--safe-border);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .live-dot {
+      width: 6px; height: 6px;
+      background: var(--safe);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,.4); }
+      50% { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    /* ═══ MAIN CONTENT ═══ */
+    .app { flex: 1; display: flex; flex-direction: column; }
+
+    .panel {
+      display: none;
+      flex: 1;
+      padding: 1.5rem;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+      animation: fadeIn .25s ease;
+    }
+
+    .panel.active { display: block; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ═══ OVERVIEW PANEL ═══ */
+    .overview-status {
+      border-radius: var(--r-lg);
+      padding: 1.75rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+      border: 1px solid;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .overview-status::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: .03;
+      background: radial-gradient(ellipse at 30% 50%, currentColor, transparent 70%);
+      pointer-events: none;
+    }
+
+    .overview-status.safe { background: var(--safe-bg); border-color: var(--safe-border); color: var(--safe); }
+    .overview-status.caution { background: var(--caution-bg); border-color: var(--caution-border); color: var(--caution); }
+    .overview-status.unsafe { background: var(--unsafe-bg); border-color: var(--unsafe-border); color: var(--unsafe); }
+
+    .os-icon { font-size: 2.75rem; line-height: 1; flex-shrink: 0; }
+
+    .os-body { flex: 1; min-width: 0; }
+
+    .os-label {
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .os-title {
+      font-size: 1.65rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin: 2px 0;
+    }
+
+    .os-desc { font-size: 0.82rem; color: var(--text-secondary); }
+
+    .os-meta { text-align: right; flex-shrink: 0; }
+
+    .os-loc { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+
+    .os-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* Safety banners */
+    .safety-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .sb {
+      border-radius: var(--r);
+      padding: 1.25rem;
+      text-align: center;
+      border: 1px solid;
+      position: relative;
+      overflow: hidden;
+      transition: all .3s;
+    }
+
+    .sb::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: .04;
+      background: radial-gradient(ellipse at center, currentColor, transparent 70%);
+      pointer-events: none;
+    }
+
+    .sb.safe { background: var(--safe-bg); border-color: var(--safe-border); color: var(--safe); }
+    .sb.unsafe { background: var(--unsafe-bg); border-color: var(--unsafe-border); color: var(--unsafe); }
+
+    .sb-icon { font-size: 2rem; line-height: 1; margin-bottom: 0.3rem; }
+
+    .sb-label {
+      font-size: 0.58rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .sb-status { font-size: 1.3rem; font-weight: 800; line-height: 1.1; }
+    .sb.safe .sb-status { color: var(--safe); }
+    .sb.unsafe .sb-status { color: var(--unsafe); }
+
+    .sb-detail { font-size: 0.68rem; margin-top: 4px; color: var(--text-secondary); }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1rem;
+      text-align: center;
+      transition: border-color .15s;
+    }
+
+    .stat:hover { border-color: var(--border-active); }
+
+    .stat-num {
+      font-size: 1.75rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .stat:nth-child(1) .stat-num { color: var(--accent); }
+    .stat:nth-child(2) .stat-num { color: var(--safe); }
+    .stat:nth-child(3) .stat-num { color: var(--caution); }
+    .stat:nth-child(4) .stat-num { color: var(--unsafe); }
+
+    .stat-lbl {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    /* Sensor picker */
+    .sensor-pick {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .sp-btn {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      padding: 0.5rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .sp-btn:hover { border-color: var(--border-active); color: var(--text); }
+    .sp-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent-light); }
+
+    .sp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .sp-dot.safe { background: var(--safe); }
+    .sp-dot.caution { background: var(--caution); }
+    .sp-dot.unsafe { background: var(--unsafe); }
+
+    /* Quick-read cards */
+    .readings {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+
+    .rd {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .15s;
+    }
+
+    .rd:hover { border-color: var(--border-active); }
+
+    .rd .bar { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .rd.safe .bar { background: var(--safe); }
+    .rd.caution .bar { background: var(--caution); }
+    .rd.unsafe .bar { background: var(--unsafe); }
+
+    .rd-lbl {
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .rd-row { display: flex; align-items: baseline; gap: 4px; }
+
+    .rd-val { font-size: 1.85rem; font-weight: 800; line-height: 1; }
+    .rd.safe .rd-val { color: var(--safe); }
+    .rd.caution .rd-val { color: var(--caution); }
+    .rd.unsafe .rd-val { color: var(--unsafe); }
+
+    .rd-unit { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+
+    .rd-gauge { margin-top: 10px; height: 4px; background: rgba(255,255,255,.04); border-radius: 2px; overflow: hidden; }
+    .rd-gauge-fill { height: 100%; border-radius: 2px; transition: width .5s ease; }
+    .rd.safe .rd-gauge-fill { background: var(--safe); }
+    .rd.caution .rd-gauge-fill { background: var(--caution); }
+    .rd.unsafe .rd-gauge-fill { background: var(--unsafe); }
+
+    .rd-range { display: flex; justify-content: space-between; margin-top: 3px; font-size: 0.55rem; color: var(--text-muted); }
+
+    .rd-tag { font-size: 0.62rem; font-weight: 600; margin-top: 6px; }
+    .rd.safe .rd-tag { color: var(--safe); }
+    .rd.caution .rd-tag { color: var(--caution); }
+    .rd.unsafe .rd-tag { color: var(--unsafe); }
+
+    /* ═══ MAP PANEL ═══ */
+    .map-wrap {
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      height: calc(100vh - 56px - 3rem);
+      min-height: 400px;
+    }
+
+    #map { height: 100%; width: 100%; background: var(--bg-secondary); }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-card) !important;
+      color: var(--text) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5) !important;
+      border: 1px solid var(--border) !important;
+    }
+
+    .leaflet-popup-tip { background: var(--bg-card) !important; }
+
+    .pop-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+
+    .pop-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.58rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .pop-badge.safe { background: var(--safe-bg); color: var(--safe); border: 1px solid var(--safe-border); }
+    .pop-badge.caution { background: var(--caution-bg); color: var(--caution); border: 1px solid var(--caution-border); }
+    .pop-badge.unsafe { background: var(--unsafe-bg); color: var(--unsafe); border: 1px solid var(--unsafe-border); }
+
+    .pop-loc { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 8px; }
+
+    .pop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+
+    .pop-m { background: rgba(255,255,255,.03); border-radius: 7px; padding: 5px 7px; }
+    .pop-m-l { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    .pop-m-v { font-size: 0.9rem; font-weight: 700; }
+
+    .pop-btn {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 7px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(6,182,212,.2);
+      border-radius: 7px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background .15s;
+    }
+
+    .pop-btn:hover { background: rgba(6,182,212,.2); }
+
+    .leaflet-control-zoom a {
+      background: var(--bg-card) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+
+    .leaflet-control-attribution { opacity: .3 !important; font-size: 9px !important; }
+
+    /* ═══ DASHBOARD PANEL ═══ */
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .dash-title { font-size: 1.05rem; font-weight: 700; }
+    .dash-sub { font-size: 0.75rem; color: var(--text-muted); }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .mc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .15s;
+    }
+
+    .mc:hover { border-color: var(--border-active); }
+
+    .mc .bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .mc.safe .bar { background: var(--safe); }
+    .mc.caution .bar { background: var(--caution); }
+    .mc.unsafe .bar { background: var(--unsafe); }
+
+    .mc-lbl { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.6rem; }
+
+    .mc-row { display: flex; align-items: baseline; gap: 5px; }
+    .mc-val { font-size: 2.75rem; font-weight: 800; line-height: 1; }
+    .mc.safe .mc-val { color: var(--safe); }
+    .mc.caution .mc-val { color: var(--caution); }
+    .mc.unsafe .mc-val { color: var(--unsafe); }
+
+    .mc-unit { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+
+    .mc-gauge { margin-top: 1rem; height: 5px; background: rgba(255,255,255,.04); border-radius: 3px; overflow: hidden; }
+    .mc-gauge-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+    .mc.safe .mc-gauge-fill { background: var(--safe); }
+    .mc.caution .mc-gauge-fill { background: var(--caution); }
+    .mc.unsafe .mc-gauge-fill { background: var(--unsafe); }
+
+    .mc-range { display: flex; justify-content: space-between; margin-top: 3px; font-size: 0.58rem; color: var(--text-muted); }
+
+    .mc-tag { font-size: 0.68rem; font-weight: 600; margin-top: 6px; }
+    .mc.safe .mc-tag { color: var(--safe); }
+    .mc.caution .mc-tag { color: var(--caution); }
+    .mc.unsafe .mc-tag { color: var(--unsafe); }
+
+    /* ═══ HISTORY PANEL ═══ */
+    .hist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .hist-title { font-size: 1.05rem; font-weight: 700; }
+    .hist-sub { font-size: 0.75rem; color: var(--text-muted); }
+
+    .hist-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+
+    .ht {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all .12s;
+    }
+
+    .ht:hover { border-color: var(--accent); color: var(--accent); }
+    .ht.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-light); }
+
+    .chart-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.25rem;
+    }
+
+    .chart-area { position: relative; height: 380px; }
+
+    /* ═══ ALERTS PANEL ═══ */
+    .alerts-card {
+      background: linear-gradient(135deg, rgba(6,182,212,.06), rgba(20,184,166,.03));
+      border: 1px solid rgba(6,182,212,.18);
+      border-radius: var(--r-lg);
+      padding: 3rem;
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+      max-width: 800px;
+      margin: 2rem auto;
+    }
+
+    .alerts-body { flex: 1; min-width: 240px; }
+    .alerts-body h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .alerts-body p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+    .alerts-form-wrap { flex: 1; min-width: 260px; }
+
+    .alerts-form { display: flex; gap: 0.6rem; }
+
+    .alerts-input {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .alerts-input::placeholder { color: var(--text-muted); }
+    .alerts-input:focus { border-color: var(--accent); }
+
+    .alerts-btn {
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform .1s, box-shadow .2s;
+      box-shadow: 0 2px 10px rgba(6,182,212,.25);
+    }
+
+    .alerts-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(6,182,212,.35); }
+
+    .alerts-ok {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.82rem;
+      color: var(--safe);
+      font-weight: 600;
+      margin-top: 0.75rem;
+    }
+
+    .alerts-ok.show { display: flex; }
+
+    /* ═══ FOOTER ═══ */
+    .foot {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1440px;
+      margin: auto auto 0;
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .foot-brand {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .foot-logo {
+      width: 22px; height: 22px;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .foot-brand span { font-weight: 700; font-size: 0.8rem; }
+    .foot-copy { font-size: 0.68rem; color: var(--text-muted); }
+
+    .foot-links { display: flex; gap: 1.25rem; list-style: none; }
+    .foot-links a { font-size: 0.7rem; color: var(--text-muted); text-decoration: none; transition: color .15s; }
+    .foot-links a:hover { color: var(--accent); }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 900px) {
+      .overview-status { flex-direction: column; text-align: center; gap: 1rem; padding: 1.25rem; }
+      .os-meta { text-align: center; }
+      .os-title { font-size: 1.35rem; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .readings { grid-template-columns: repeat(2, 1fr); }
+      .dash-grid { grid-template-columns: 1fr; }
+      .alerts-card { flex-direction: column; text-align: center; padding: 2rem; }
+    }
+
+    @media (max-width: 600px) {
+      .tabs { display: none; }
+      .tabs.open { display: flex; flex-direction: column; position: absolute; top: 56px; left: 0; right: 0; background: rgba(6,13,27,.97); backdrop-filter: blur(20px); padding: 0.75rem; gap: 2px; border-bottom: 1px solid var(--border); z-index: 899; }
+      .tabs.open .tab::after { display: none; }
+      .hamburger { display: block; }
+      .panel { padding: 1rem; }
+      .readings { grid-template-columns: 1fr 1fr; }
+      .rd-val { font-size: 1.4rem; }
+      .stats-row { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+      .stat-num { font-size: 1.3rem; }
+      .safety-row { grid-template-columns: 1fr; }
+      .sb-status { font-size: 1.1rem; }
+      .map-wrap { height: calc(100vh - 56px - 2rem); min-height: 300px; }
+      .chart-area { height: 260px; }
+      .mc-val { font-size: 2rem; }
+      .foot { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <a href="#" class="logo" id="logo-home">
+      <div class="logo-icon">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+      </div>
+      <div>
+        <div class="logo-text">AquaTrack</div>
+        <div class="logo-sub">Real-time monitoring</div>
+      </div>
+    </a>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-panel="overview">Overview</button>
+      <button class="tab" data-panel="map">Map</button>
+      <button class="tab" data-panel="dashboard">Dashboard</button>
+      <button class="tab" data-panel="history">History</button>
+      <button class="tab" data-panel="alerts">Alerts</button>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ── OVERVIEW ── -->
+  <div class="panel active" id="panel-overview">
+    <div class="overview-status safe" id="ov-banner">
+      <div class="os-icon" id="ov-icon">✅</div>
+      <div class="os-body">
+        <div class="os-label">Current Water Quality</div>
+        <div class="os-title" id="ov-title">SAFE</div>
+        <div class="os-desc" id="ov-desc">All parameters within safe limits — water is suitable for recreational use.</div>
+      </div>
+      <div class="os-meta">
+        <div class="os-loc" id="ov-loc">Lucky's Dock</div>
+        <div class="os-time" id="ov-time">Updated just now</div>
+      </div>
+    </div>
+
+    <div class="safety-row">
+      <div class="sb safe" id="sb-swim">
+        <div class="sb-icon">✅</div>
+        <div class="sb-label">Swimming Advisory</div>
+        <div class="sb-status">Safe to Swim</div>
+        <div class="sb-detail">All 4 sensors within safe range</div>
+      </div>
+      <div class="sb unsafe" id="sb-drink">
+        <div class="sb-icon">⚠️</div>
+        <div class="sb-label">Drinking Advisory</div>
+        <div class="sb-status">Do Not Drink</div>
+        <div class="sb-detail">Checking sensors…</div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="st-total">3</div><div class="stat-lbl">Active Sensors</div></div>
+      <div class="stat"><div class="stat-num" id="st-safe">1</div><div class="stat-lbl">Safe</div></div>
+      <div class="stat"><div class="stat-num" id="st-caution">1</div><div class="stat-lbl">Caution</div></div>
+      <div class="stat"><div class="stat-num" id="st-unsafe">1</div><div class="stat-lbl">Unsafe</div></div>
+    </div>
+
+    <div class="sensor-pick" id="ov-sensors"></div>
+
+    <div class="readings" id="ov-readings">
+      <div class="rd safe" id="rd-ph"><div class="bar"></div><div class="rd-lbl">pH Level</div><div class="rd-row"><div class="rd-val">7.2</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:51%"></div></div><div class="rd-range"><span>0</span><span>14</span></div><div class="rd-tag">Normal</div></div>
+      <div class="rd safe" id="rd-tds"><div class="bar"></div><div class="rd-lbl">TDS</div><div class="rd-row"><div class="rd-val">187</div><div class="rd-unit">ppm</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:25%"></div></div><div class="rd-range"><span>0</span><span>750</span></div><div class="rd-tag">Normal</div></div>
+      <div class="rd safe" id="rd-turb"><div class="bar"></div><div class="rd-lbl">Turbidity</div><div class="rd-row"><div class="rd-val">3.1</div><div class="rd-unit">NTU</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:2%"></div></div><div class="rd-range"><span>0</span><span>150</span></div><div class="rd-tag">Normal</div></div>
+      <div class="rd safe" id="rd-temp"><div class="bar"></div><div class="rd-lbl">Temperature</div><div class="rd-row"><div class="rd-val">74</div><div class="rd-unit">°F</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:54%"></div></div><div class="rd-range"><span>32°F</span><span>110°F</span></div><div class="rd-tag">Normal</div></div>
+    </div>
+  </div>
+
+  <!-- ── MAP ── -->
+  <div class="panel" id="panel-map">
+    <div class="map-wrap"><div id="map"></div></div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="panel" id="panel-dashboard">
+    <div class="dash-header">
+      <div><div class="dash-title">Live Sensor Readings</div><div class="dash-sub" id="dash-sub">Lucky's Dock, Lake of the Ozarks</div></div>
+      <div class="sensor-pick" id="dash-sensors"></div>
+    </div>
+    <div class="dash-grid" id="dash-grid">
+      <div class="mc safe" id="mc-ph"><div class="bar"></div><div class="mc-lbl">pH Level</div><div class="mc-row"><div class="mc-val">7.2</div><div class="mc-unit"></div></div><div class="mc-gauge"><div class="mc-gauge-fill" style="width:51%"></div></div><div class="mc-range"><span>0</span><span>Safe: 6.5 – 8.5</span><span>14</span></div><div class="mc-tag">Normal</div></div>
+      <div class="mc safe" id="mc-tds"><div class="bar"></div><div class="mc-lbl">Total Dissolved Solids</div><div class="mc-row"><div class="mc-val">187</div><div class="mc-unit">ppm</div></div><div class="mc-gauge"><div class="mc-gauge-fill" style="width:25%"></div></div><div class="mc-range"><span>0</span><span>Safe: &lt; 300 ppm</span><span>750</span></div><div class="mc-tag">Normal</div></div>
+      <div class="mc safe" id="mc-turb"><div class="bar"></div><div class="mc-lbl">Turbidity</div><div class="mc-row"><div class="mc-val">3.1</div><div class="mc-unit">NTU</div></div><div class="mc-gauge"><div class="mc-gauge-fill" style="width:2%"></div></div><div class="mc-range"><span>0</span><span>Safe: &lt; 50 NTU</span><span>150</span></div><div class="mc-tag">Normal</div></div>
+      <div class="mc safe" id="mc-temp"><div class="bar"></div><div class="mc-lbl">Water Temperature</div><div class="mc-row"><div class="mc-val">74</div><div class="mc-unit">°F</div></div><div class="mc-gauge"><div class="mc-gauge-fill" style="width:54%"></div></div><div class="mc-range"><span>32°F</span><span>Current reading</span><span>110°F</span></div><div class="mc-tag">Normal</div></div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY ── -->
+  <div class="panel" id="panel-history">
+    <div class="hist-header">
+      <div><div class="hist-title">24-Hour Trend</div><div class="hist-sub" id="hist-sub">Lucky's Dock</div></div>
+      <div class="hist-tabs" id="hist-tabs">
+        <button class="ht active" data-m="all">All</button>
+        <button class="ht" data-m="ph">pH</button>
+        <button class="ht" data-m="tds">TDS</button>
+        <button class="ht" data-m="turbidity">Turbidity</button>
+        <button class="ht" data-m="temperature">Temp</button>
+      </div>
+    </div>
+    <div class="chart-box"><div class="chart-area"><canvas id="hist-chart"></canvas></div></div>
+  </div>
+
+  <!-- ── ALERTS ── -->
+  <div class="panel" id="panel-alerts">
+    <div class="alerts-card">
+      <div class="alerts-body">
+        <h2>Subscribe to Water Quality Alerts</h2>
+        <p>Get instant notifications when a sensor near you detects CAUTION or UNSAFE conditions. We'll email you so you know before you head out.</p>
+      </div>
+      <div class="alerts-form-wrap">
+        <div class="alerts-form" id="a-form">
+          <input type="email" class="alerts-input" id="a-email" placeholder="your@email.com" />
+          <button class="alerts-btn" id="a-btn">Subscribe</button>
+        </div>
+        <div class="alerts-ok" id="a-ok">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          You're subscribed! We'll notify you of any changes.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<div class="foot">
+  <div class="foot-brand">
+    <div class="foot-logo"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div>
+    <span>AquaTrack</span>
+  </div>
+  <div class="foot-copy">&copy; 2026 AquaTrack — Real-time water quality monitoring for everyone.</div>
+  <ul class="foot-links"><li><a href="#">About</a></li><li><a href="#">API</a></li><li><a href="#">Contact</a></li><li><a href="#">Privacy</a></li></ul>
+</div>
+
+<script>
+(function() {
+  var SENSORS = [
+    { id:"luckys-dock", name:"Lucky's Dock", location:"Lake of the Ozarks, MO", lat:38.1717, lng:-92.6382, ph:7.2, tds:187, turbidity:3.1, temperature:74 },
+    { id:"party-cove", name:"Party Cove", location:"Lake of the Ozarks, MO", lat:38.1850, lng:-92.6200, ph:6.3, tds:420, turbidity:67, temperature:76 },
+    { id:"osage-beach", name:"Osage Beach Marina", location:"Lake of the Ozarks, MO", lat:38.1234, lng:-92.6500, ph:8.9, tds:550, turbidity:112, temperature:78 }
+  ];
+
+  var selected = SENSORS[0];
+  var chart = null;
+  var activeM = "all";
+  var leafletMap = null;
+  var mapBuilt = false;
+
+  function cPh(v)   { return v >= 6.5 && v <= 8.5 ? "safe" : v >= 6.0 && v <= 9.0 ? "caution" : "unsafe"; }
+  function cTds(v)  { return v < 300 ? "safe" : v <= 500 ? "caution" : "unsafe"; }
+  function cTurb(v) { return v < 50  ? "safe" : v <= 100 ? "caution" : "unsafe"; }
+  function overall(s) {
+    var l = [cPh(s.ph), cTds(s.tds), cTurb(s.turbidity)];
+    return l.indexOf("unsafe") >= 0 ? "unsafe" : l.indexOf("caution") >= 0 ? "caution" : "safe";
+  }
+
+  var STA = {
+    safe:    { icon:"✅", title:"SAFE",    desc:"All parameters within safe limits — water is suitable for recreational use." },
+    caution: { icon:"⚠️", title:"CAUTION", desc:"One or more parameters approaching unsafe levels — exercise caution." },
+    unsafe:  { icon:"🚨", title:"UNSAFE",  desc:"Water quality is below safe thresholds — avoid contact until conditions improve." }
+  };
+
+  var SWIM = { ph:[6.5,8.5], tds:[0,1000], turbidity:[0,100], temperature:[0,95] };
+  var DRINK = { ph:[6.5,8.5], tds:[0,500], turbidity:[0,1], temperature:[0,77] };
+
+  function checkSafe(th, s) {
+    var names = { ph:"pH", tds:"TDS", turbidity:"Turbidity", temperature:"Temperature" };
+    var bad = [];
+    ["ph","tds","turbidity","temperature"].forEach(function(k) {
+      if (s[k] < th[k][0] || s[k] > th[k][1]) bad.push(names[k]);
+    });
+    return bad;
+  }
+
+  function updateSafetyBanners(s) {
+    var swimBad = checkSafe(SWIM, s);
+    var drinkBad = checkSafe(DRINK, s);
+    var se = document.getElementById("sb-swim");
+    var de = document.getElementById("sb-drink");
+
+    se.className = "sb " + (swimBad.length === 0 ? "safe" : "unsafe");
+    se.querySelector(".sb-icon").textContent = swimBad.length === 0 ? "✅" : "⚠️";
+    se.querySelector(".sb-status").textContent = swimBad.length === 0 ? "Safe to Swim" : "Do Not Swim";
+    se.querySelector(".sb-detail").textContent = swimBad.length === 0 ? "All 4 sensors within safe range" : swimBad.join(", ") + " out of range";
+
+    de.className = "sb " + (drinkBad.length === 0 ? "safe" : "unsafe");
+    de.querySelector(".sb-icon").textContent = drinkBad.length === 0 ? "✅" : "⚠️";
+    de.querySelector(".sb-status").textContent = drinkBad.length === 0 ? "Safe to Drink" : "Do Not Drink";
+    de.querySelector(".sb-detail").textContent = drinkBad.length === 0 ? "All 4 sensors within safe range" : drinkBad.join(", ") + " out of range";
+  }
+
+  function updateBanner(s) {
+    var st = overall(s), c = STA[st];
+    var el = document.getElementById("ov-banner");
+    el.className = "overview-status " + st;
+    document.getElementById("ov-icon").textContent = c.icon;
+    document.getElementById("ov-title").textContent = c.title;
+    document.getElementById("ov-desc").textContent = c.desc;
+    document.getElementById("ov-loc").textContent = s.name;
+    document.getElementById("ov-time").textContent = "Updated " + new Date().toLocaleTimeString();
+  }
+
+  function updateStats() {
+    var c = { safe:0, caution:0, unsafe:0 };
+    SENSORS.forEach(function(s) { c[overall(s)]++; });
+    document.getElementById("st-total").textContent = SENSORS.length;
+    document.getElementById("st-safe").textContent = c.safe;
+    document.getElementById("st-caution").textContent = c.caution;
+    document.getElementById("st-unsafe").textContent = c.unsafe;
+  }
+
+  function updateReadings(s) {
+    var items = [
+      { id:"rd-ph",  v:s.ph,  u:"", cf:cPh,  g:s.ph/14*100 },
+      { id:"rd-tds", v:s.tds, u:"ppm", cf:cTds, g:Math.min(s.tds/750*100,100) },
+      { id:"rd-turb",v:s.turbidity, u:"NTU", cf:cTurb, g:Math.min(s.turbidity/150*100,100) },
+      { id:"rd-temp",v:s.temperature, u:"°F", cf:function(){return "safe";}, g:(s.temperature-32)/78*100 }
+    ];
+    var txt = { safe:"Normal", caution:"Borderline", unsafe:"Out of Range" };
+    items.forEach(function(d) {
+      var el = document.getElementById(d.id), lv = d.cf(d.v);
+      el.className = "rd " + lv;
+      el.querySelector(".rd-val").textContent = d.v;
+      var uEl = el.querySelector(".rd-unit"); if (uEl) uEl.textContent = d.u;
+      el.querySelector(".rd-gauge-fill").style.width = d.g + "%";
+      el.querySelector(".rd-tag").textContent = txt[lv];
+    });
+  }
+
+  function updateDashCards(s) {
+    var items = [
+      { id:"mc-ph",  v:s.ph,  u:"", cf:cPh,  g:s.ph/14*100, rng:["0","Safe: 6.5 – 8.5","14"] },
+      { id:"mc-tds", v:s.tds, u:"ppm", cf:cTds, g:Math.min(s.tds/750*100,100), rng:["0","Safe: < 300 ppm","750"] },
+      { id:"mc-turb",v:s.turbidity, u:"NTU", cf:cTurb, g:Math.min(s.turbidity/150*100,100), rng:["0","Safe: < 50 NTU","150"] },
+      { id:"mc-temp",v:s.temperature, u:"°F", cf:function(){return "safe";}, g:(s.temperature-32)/78*100, rng:["32°F","Current reading","110°F"] }
+    ];
+    var txt = { safe:"Normal", caution:"Borderline", unsafe:"Out of Range" };
+    items.forEach(function(d) {
+      var el = document.getElementById(d.id), lv = d.cf(d.v);
+      el.className = "mc " + lv;
+      el.querySelector(".mc-val").textContent = d.v;
+      el.querySelector(".mc-unit").textContent = d.u;
+      el.querySelector(".mc-gauge-fill").style.width = d.g + "%";
+      el.querySelector(".mc-tag").textContent = txt[lv];
+      var sp = el.querySelectorAll(".mc-range span");
+      sp[0].textContent = d.rng[0]; sp[1].textContent = d.rng[1]; sp[2].textContent = d.rng[2];
+    });
+  }
+
+  function buildSensorBtns(containerId) {
+    var c = document.getElementById(containerId);
+    c.innerHTML = "";
+    SENSORS.forEach(function(s) {
+      var b = document.createElement("button");
+      b.className = "sp-btn" + (s.id === selected.id ? " active" : "");
+      var st = overall(s);
+      b.innerHTML = '<span class="sp-dot ' + st + '"></span>' + s.name;
+      b.addEventListener("click", function() { selectSensor(s); });
+      c.appendChild(b);
+    });
+  }
+
+  function selectSensor(s) {
+    selected = s;
+    updateBanner(s);
+    updateSafetyBanners(s);
+    updateReadings(s);
+    updateDashCards(s);
+    buildSensorBtns("ov-sensors");
+    buildSensorBtns("dash-sensors");
+    buildChart(s);
+    document.getElementById("dash-sub").textContent = s.name + ", " + s.location;
+    document.getElementById("hist-sub").textContent = s.name;
+  }
+
+  function buildMap() {
+    if (mapBuilt) return;
+    mapBuilt = true;
+
+    leafletMap = L.map("map", { zoomControl: true, scrollWheelZoom: true }).setView([38.155, -92.635], 12);
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+    }).addTo(leafletMap);
+
+    var colors = { safe:"#10b981", caution:"#f59e0b", unsafe:"#ef4444" };
+
+    SENSORS.forEach(function(s) {
+      var st = overall(s), col = colors[st];
+      var icon = L.divIcon({
+        className: "",
+        html: '<div style="width:30px;height:30px;border-radius:50%;background:'+col+';border:3px solid '+col+'44;box-shadow:0 0 14px '+col+'66,0 2px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center"><div style="width:10px;height:10px;background:#fff;border-radius:50%;opacity:.9"></div></div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+
+      var html =
+        '<div style="min-width:210px">' +
+        '<div class="pop-title">' + s.name + ' <span class="pop-badge ' + st + '">' + st.toUpperCase() + '</span></div>' +
+        '<div class="pop-loc">' + s.location + '</div>' +
+        '<div class="pop-grid">' +
+          '<div class="pop-m"><div class="pop-m-l">pH</div><div class="pop-m-v">' + s.ph + '</div></div>' +
+          '<div class="pop-m"><div class="pop-m-l">TDS</div><div class="pop-m-v">' + s.tds + ' ppm</div></div>' +
+          '<div class="pop-m"><div class="pop-m-l">Turbidity</div><div class="pop-m-v">' + s.turbidity + ' NTU</div></div>' +
+          '<div class="pop-m"><div class="pop-m-l">Temp</div><div class="pop-m-v">' + s.temperature + '°F</div></div>' +
+        '</div>' +
+        '<button class="pop-btn" onclick="window._sel(\'' + s.id + '\')">View Dashboard →</button></div>';
+
+      L.marker([s.lat, s.lng], { icon: icon }).addTo(leafletMap).bindPopup(html, { maxWidth: 270 });
+    });
+  }
+
+  window._sel = function(id) {
+    var s = SENSORS.find(function(x) { return x.id === id; });
+    if (s) { selectSensor(s); switchTab("dashboard"); }
+  };
+
+  var CC = {
+    ph: { line:"#38bdf8", fill:"rgba(56,189,248,.06)" },
+    tds: { line:"#a78bfa", fill:"rgba(167,139,250,.06)" },
+    turbidity: { line:"#fb923c", fill:"rgba(251,146,60,.06)" },
+    temperature: { line:"#34d399", fill:"rgba(52,211,153,.06)" }
+  };
+
+  function genHistory(s) {
+    var now = Date.now(), pts = [];
+    for (var i = 48; i >= 0; i--) {
+      var t = now - i * 30 * 60000, d = Math.sin(i / 6) * 0.3;
+      pts.push({
+        timestamp: t,
+        ph: +(s.ph + d * 0.4 + (Math.random() - 0.5) * 0.3).toFixed(2),
+        tds: Math.round(s.tds + d * 30 + (Math.random() - 0.5) * 40),
+        turbidity: +Math.max(0, s.turbidity + d * 8 + (Math.random() - 0.5) * 10).toFixed(1),
+        temperature: Math.round(s.temperature + Math.sin(i / 8) * 2 + (Math.random() - 0.5) * 1)
+      });
+    }
+    return pts;
+  }
+
+  function buildChart(s) {
+    var hist = genHistory(s);
+    var labels = hist.map(function(p) { return new Date(p.timestamp); });
+    var defs = [
+      { key:"ph", label:"pH", ax:"y", c:CC.ph },
+      { key:"tds", label:"TDS (ppm)", ax:"y1", c:CC.tds },
+      { key:"turbidity", label:"Turbidity (NTU)", ax:"y1", c:CC.turbidity },
+      { key:"temperature", label:"Temp (°F)", ax:"y", c:CC.temperature }
+    ];
+    var ds = defs.filter(function(d) { return activeM === "all" || d.key === activeM; }).map(function(d) {
+      return {
+        label: d.label,
+        data: hist.map(function(p) { return p[d.key]; }),
+        borderColor: d.c.line,
+        backgroundColor: d.c.fill,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: d.c.line,
+        tension: 0.35,
+        fill: true,
+        yAxisID: d.ax
+      };
+    });
+    var sY1 = activeM === "all" || activeM === "tds" || activeM === "turbidity";
+    var sY  = activeM === "all" || activeM === "ph" || activeM === "temperature";
+    var cfg = {
+      type: "line",
+      data: { labels: labels, datasets: ds },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: activeM === "all", position: "top", labels: { color: "#8899b0", usePointStyle: true, pointStyle: "circle", padding: 14, font: { size: 11 } } },
+          tooltip: { backgroundColor: "#111c2e", titleColor: "#e8edf5", bodyColor: "#8899b0", borderColor: "#1e3048", borderWidth: 1, cornerRadius: 10, padding: 10, callbacks: { title: function(i) { return new Date(i[0].parsed.x).toLocaleTimeString(); } } }
+        },
+        scales: {
+          x: { type: "time", time: { unit: "hour", tooltipFormat: "MMM d, HH:mm", displayFormats: { hour: "ha" } }, grid: { color: "rgba(148,163,184,.05)" }, ticks: { color: "#556680", font: { size: 11 }, maxTicksLimit: 12 } },
+          y: { display: sY, position: "left", title: { display: true, text: activeM === "ph" ? "pH" : activeM === "temperature" ? "°F" : "pH / °F", color: "#556680", font: { size: 11 } }, grid: { color: "rgba(148,163,184,.05)" }, ticks: { color: "#556680", font: { size: 11 } } },
+          y1: { display: sY1, position: "right", title: { display: true, text: activeM === "tds" ? "ppm" : activeM === "turbidity" ? "NTU" : "ppm / NTU", color: "#556680", font: { size: 11 } }, grid: { drawOnChartArea: false }, ticks: { color: "#556680", font: { size: 11 } } }
+        }
+      }
+    };
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("hist-chart"), cfg);
+  }
+
+  // ── Tab switching ──
+  function switchTab(name) {
+    document.querySelectorAll(".tab").forEach(function(t) { t.classList.toggle("active", t.dataset.panel === name); });
+    document.querySelectorAll(".panel").forEach(function(p) { p.classList.toggle("active", p.id === "panel-" + name); });
+    document.getElementById("tabs").classList.remove("open");
+
+    if (name === "map") {
+      if (!mapBuilt) buildMap();
+      setTimeout(function() { if (leafletMap) leafletMap.invalidateSize(); }, 100);
+    }
+    if (name === "history") buildChart(selected);
+  }
+
+  document.getElementById("tabs").addEventListener("click", function(e) {
+    var t = e.target.closest(".tab");
+    if (t) switchTab(t.dataset.panel);
+  });
+
+  document.getElementById("logo-home").addEventListener("click", function(e) {
+    e.preventDefault();
+    switchTab("overview");
+  });
+
+  document.getElementById("hamburger").addEventListener("click", function() {
+    document.getElementById("tabs").classList.toggle("open");
+  });
+
+  document.getElementById("hist-tabs").addEventListener("click", function(e) {
+    var t = e.target.closest(".ht");
+    if (!t) return;
+    document.querySelectorAll(".ht").forEach(function(x) { x.classList.remove("active"); });
+    t.classList.add("active");
+    activeM = t.dataset.m;
+    buildChart(selected);
+  });
+
+  document.getElementById("a-btn").addEventListener("click", function() {
+    var email = document.getElementById("a-email").value.trim();
+    if (!email || email.indexOf("@") < 0) { document.getElementById("a-email").style.borderColor = "#ef4444"; return; }
+    document.getElementById("a-email").style.borderColor = "";
+    document.getElementById("a-form").style.display = "none";
+    document.getElementById("a-ok").classList.add("show");
+  });
+
+  // ── Init ──
+  updateBanner(selected);
+  updateSafetyBanners(selected);
+  updateStats();
+  updateReadings(selected);
+  updateDashCards(selected);
+  buildSensorBtns("ov-sensors");
+  buildSensorBtns("dash-sensors");
+})();
+</script>
+
+</body>
+</html>

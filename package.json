@@ -1,0 +1,11 @@
+{
+  "name": "aquatrack-seed",
+  "version": "1.0.0",
+  "description": "Seed script for AquaTrack water quality sensor data",
+  "scripts": {
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "firebase": "^11.0.0"
+  }
+}
