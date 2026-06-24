@@ -330,6 +330,63 @@
     .sp-dot.caution { background: var(--caution); }
     .sp-dot.unsafe { background: var(--unsafe); }
 
+    /* Standard toggle */
+    .std-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .std-label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); }
+
+    .std-toggle {
+      display: flex;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .std-btn {
+      background: none;
+      border: none;
+      padding: 0.4rem 1rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .12s;
+    }
+
+    .std-btn:hover { color: var(--text-secondary); }
+
+    .std-btn.active {
+      background: var(--accent-dim);
+      color: var(--accent-light);
+    }
+
+    /* Threshold info on cards */
+    .rd-threshold {
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .rd-threshold-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .rd-threshold-dot.pass { background: var(--safe); }
+    .rd-threshold-dot.fail { background: var(--unsafe); }
+
     /* Quick-read cards */
     .readings {
       display: grid;
@@ -686,11 +743,19 @@
       <div class="stat-pill"><span class="stat-pill-num" id="st-unsafe">1</span> Unsafe</div>
     </div>
 
+    <div class="std-row">
+      <div class="std-label">Checking against:</div>
+      <div class="std-toggle" id="std-toggle">
+        <button class="std-btn active" data-std="swim">Safe to Swim</button>
+        <button class="std-btn" data-std="drink">Safe to Drink</button>
+      </div>
+    </div>
+
     <div class="readings" id="ov-readings">
-      <div class="rd safe" id="rd-ph"><div class="bar"></div><div class="rd-lbl">pH Level</div><div class="rd-row"><div class="rd-val">7.2</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:51%"></div></div><div class="rd-range"><span>0</span><span>14</span></div><div class="rd-tag">Normal</div></div>
-      <div class="rd safe" id="rd-tds"><div class="bar"></div><div class="rd-lbl">TDS</div><div class="rd-row"><div class="rd-val">187</div><div class="rd-unit">ppm</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:25%"></div></div><div class="rd-range"><span>0</span><span>750</span></div><div class="rd-tag">Normal</div></div>
-      <div class="rd safe" id="rd-turb"><div class="bar"></div><div class="rd-lbl">Turbidity</div><div class="rd-row"><div class="rd-val">3.1</div><div class="rd-unit">NTU</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:2%"></div></div><div class="rd-range"><span>0</span><span>150</span></div><div class="rd-tag">Normal</div></div>
-      <div class="rd safe" id="rd-temp"><div class="bar"></div><div class="rd-lbl">Temperature</div><div class="rd-row"><div class="rd-val">74</div><div class="rd-unit">°F</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:54%"></div></div><div class="rd-range"><span>32°F</span><span>110°F</span></div><div class="rd-tag">Normal</div></div>
+      <div class="rd safe" id="rd-ph"><div class="bar"></div><div class="rd-lbl">pH Level</div><div class="rd-row"><div class="rd-val">7.2</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:51%"></div></div><div class="rd-range"><span>0</span><span>14</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: 6.5 – 8.5</span></div><div class="rd-tag">Pass</div></div>
+      <div class="rd safe" id="rd-tds"><div class="bar"></div><div class="rd-lbl">TDS</div><div class="rd-row"><div class="rd-val">187</div><div class="rd-unit">ppm</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:25%"></div></div><div class="rd-range"><span>0</span><span>750</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 1000 ppm</span></div><div class="rd-tag">Pass</div></div>
+      <div class="rd safe" id="rd-turb"><div class="bar"></div><div class="rd-lbl">Turbidity</div><div class="rd-row"><div class="rd-val">3.1</div><div class="rd-unit">NTU</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:2%"></div></div><div class="rd-range"><span>0</span><span>150</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 100 NTU</span></div><div class="rd-tag">Pass</div></div>
+      <div class="rd safe" id="rd-temp"><div class="bar"></div><div class="rd-lbl">Temperature</div><div class="rd-row"><div class="rd-val">74</div><div class="rd-unit">°F</div></div><div class="rd-gauge"><div class="rd-gauge-fill" style="width:54%"></div></div><div class="rd-range"><span>32°F</span><span>110°F</span></div><div class="rd-threshold"><span class="rd-threshold-dot pass"></span><span>Limit: &lt; 95°F</span></div><div class="rd-tag">Pass</div></div>
     </div>
   </div>
 
@@ -814,23 +879,42 @@
     document.getElementById("st-unsafe").textContent = c.unsafe;
   }
 
+  var activeStd = "swim";
+
+  var SWIM_LABELS = { ph:"6.5 – 8.5", tds:"< 1,000 ppm", turbidity:"< 100 NTU", temperature:"< 95°F" };
+  var DRINK_LABELS = { ph:"6.5 – 8.5", tds:"< 500 ppm", turbidity:"< 1 NTU", temperature:"< 77°F" };
+
   function updateReadings(s) {
+    var th = activeStd === "swim" ? SWIM : DRINK;
+    var labels = activeStd === "swim" ? SWIM_LABELS : DRINK_LABELS;
     var items = [
-      { id:"rd-ph",  v:s.ph,  u:"", cf:cPh,  g:s.ph/14*100 },
-      { id:"rd-tds", v:s.tds, u:"ppm", cf:cTds, g:Math.min(s.tds/750*100,100) },
-      { id:"rd-turb",v:s.turbidity, u:"NTU", cf:cTurb, g:Math.min(s.turbidity/150*100,100) },
-      { id:"rd-temp",v:s.temperature, u:"°F", cf:function(){return "safe";}, g:(s.temperature-32)/78*100 }
+      { id:"rd-ph",  k:"ph",  v:s.ph,  u:"", g:s.ph/14*100 },
+      { id:"rd-tds", k:"tds", v:s.tds, u:"ppm", g:Math.min(s.tds/750*100,100) },
+      { id:"rd-turb",k:"turbidity", v:s.turbidity, u:"NTU", g:Math.min(s.turbidity/150*100,100) },
+      { id:"rd-temp",k:"temperature", v:s.temperature, u:"°F", g:(s.temperature-32)/78*100 }
     ];
-    var txt = { safe:"Normal", caution:"Borderline", unsafe:"Out of Range" };
     items.forEach(function(d) {
-      var el = document.getElementById(d.id), lv = d.cf(d.v);
-      el.className = "rd " + lv;
+      var el = document.getElementById(d.id);
+      var r = th[d.k];
+      var pass = d.v >= r[0] && d.v <= r[1];
+      el.className = "rd " + (pass ? "safe" : "unsafe");
       el.querySelector(".rd-val").textContent = d.v;
       var uEl = el.querySelector(".rd-unit"); if (uEl) uEl.textContent = d.u;
       el.querySelector(".rd-gauge-fill").style.width = d.g + "%";
-      el.querySelector(".rd-tag").textContent = txt[lv];
+      el.querySelector(".rd-tag").textContent = pass ? "Pass" : "Fail";
+      var dot = el.querySelector(".rd-threshold-dot");
+      dot.className = "rd-threshold-dot " + (pass ? "pass" : "fail");
+      dot.nextElementSibling.textContent = "Limit: " + labels[d.k];
     });
   }
+
+  document.getElementById("std-toggle").addEventListener("click", function(e) {
+    var btn = e.target.closest(".std-btn");
+    if (!btn) return;
+    activeStd = btn.dataset.std;
+    document.querySelectorAll(".std-btn").forEach(function(b) { b.classList.toggle("active", b.dataset.std === activeStd); });
+    updateReadings(selected);
+  });
 
   function buildSensorBtns(containerId) {
     var c = document.getElementById(containerId);
