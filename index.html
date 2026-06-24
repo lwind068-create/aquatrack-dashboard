@@ -893,13 +893,14 @@
   var SWIM_LABELS = { ph:"6.5 – 8.5", tds:"< 1,000 ppm", turbidity:"< 100 NTU", temperature:"< 95°F" };
   var DRINK_LABELS = { ph:"6.5 – 8.5", tds:"< 500 ppm", turbidity:"< 1 NTU", temperature:"< 77°F" };
 
-  function classifyReading(value, range) {
+  function classifyReading(value, range, bothEnds) {
     var lo = range[0], hi = range[1];
     if (value < lo || value > hi) return "fail";
     var span = hi - lo;
     if (span <= 0) return value <= hi ? "pass" : "fail";
     var margin = span * 0.2;
-    if (value <= lo + margin || value >= hi - margin) return "close";
+    if (value >= hi - margin) return "close";
+    if (bothEnds && value <= lo + margin) return "close";
     return "pass";
   }
 
@@ -911,14 +912,14 @@
     var th = activeStd === "swim" ? SWIM : DRINK;
     var labels = activeStd === "swim" ? SWIM_LABELS : DRINK_LABELS;
     var items = [
-      { id:"rd-ph",  k:"ph",  v:s.ph,  u:"", g:s.ph/14*100 },
-      { id:"rd-tds", k:"tds", v:s.tds, u:"ppm", g:Math.min(s.tds/750*100,100) },
-      { id:"rd-turb",k:"turbidity", v:s.turbidity, u:"NTU", g:Math.min(s.turbidity/150*100,100) },
-      { id:"rd-temp",k:"temperature", v:s.temperature, u:"°F", g:(s.temperature-32)/78*100 }
+      { id:"rd-ph",  k:"ph",  v:s.ph,  u:"", g:s.ph/14*100, both:true },
+      { id:"rd-tds", k:"tds", v:s.tds, u:"ppm", g:Math.min(s.tds/750*100,100), both:false },
+      { id:"rd-turb",k:"turbidity", v:s.turbidity, u:"NTU", g:Math.min(s.turbidity/150*100,100), both:false },
+      { id:"rd-temp",k:"temperature", v:s.temperature, u:"°F", g:(s.temperature-32)/78*100, both:false }
     ];
     items.forEach(function(d) {
       var el = document.getElementById(d.id);
-      var level = classifyReading(d.v, th[d.k]);
+      var level = classifyReading(d.v, th[d.k], d.both);
       el.className = "rd " + LEVEL_CSS[level];
       el.querySelector(".rd-val").textContent = d.v;
       var uEl = el.querySelector(".rd-unit"); if (uEl) uEl.textContent = d.u;
