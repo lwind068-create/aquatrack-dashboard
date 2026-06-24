@@ -385,6 +385,7 @@
     }
 
     .rd-threshold-dot.pass { background: var(--safe); }
+    .rd-threshold-dot.close { background: var(--caution); }
     .rd-threshold-dot.fail { background: var(--unsafe); }
 
     /* Quick-read cards */
@@ -884,6 +885,20 @@
   var SWIM_LABELS = { ph:"6.5 – 8.5", tds:"< 1,000 ppm", turbidity:"< 100 NTU", temperature:"< 95°F" };
   var DRINK_LABELS = { ph:"6.5 – 8.5", tds:"< 500 ppm", turbidity:"< 1 NTU", temperature:"< 77°F" };
 
+  function classifyReading(value, range) {
+    var lo = range[0], hi = range[1];
+    if (value < lo || value > hi) return "fail";
+    var span = hi - lo;
+    if (span <= 0) return value <= hi ? "pass" : "fail";
+    var margin = span * 0.2;
+    if (value <= lo + margin || value >= hi - margin) return "close";
+    return "pass";
+  }
+
+  var LEVEL_CSS = { pass: "safe", close: "caution", fail: "unsafe" };
+  var LEVEL_TAG = { pass: "Pass", close: "Close", fail: "Fail" };
+  var LEVEL_DOT = { pass: "pass", close: "close", fail: "fail" };
+
   function updateReadings(s) {
     var th = activeStd === "swim" ? SWIM : DRINK;
     var labels = activeStd === "swim" ? SWIM_LABELS : DRINK_LABELS;
@@ -895,15 +910,14 @@
     ];
     items.forEach(function(d) {
       var el = document.getElementById(d.id);
-      var r = th[d.k];
-      var pass = d.v >= r[0] && d.v <= r[1];
-      el.className = "rd " + (pass ? "safe" : "unsafe");
+      var level = classifyReading(d.v, th[d.k]);
+      el.className = "rd " + LEVEL_CSS[level];
       el.querySelector(".rd-val").textContent = d.v;
       var uEl = el.querySelector(".rd-unit"); if (uEl) uEl.textContent = d.u;
       el.querySelector(".rd-gauge-fill").style.width = d.g + "%";
-      el.querySelector(".rd-tag").textContent = pass ? "Pass" : "Fail";
+      el.querySelector(".rd-tag").textContent = LEVEL_TAG[level];
       var dot = el.querySelector(".rd-threshold-dot");
-      dot.className = "rd-threshold-dot " + (pass ? "pass" : "fail");
+      dot.className = "rd-threshold-dot " + LEVEL_DOT[level];
       dot.nextElementSibling.textContent = "Limit: " + labels[d.k];
     });
   }
